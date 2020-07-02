@@ -1,4 +1,5 @@
-BINS = splicecat
+SRCS = $(wildcard *.c)
+BINS = $(SRCS:.c=)
 
 CC = cc
 
@@ -9,7 +10,10 @@ LIBS    = -luring
 %: %.c
 	$(CC) $(CFLAGS) $(LDFLAGS) $< $(LIBS) -o $@
 
-all: $(BINS)
+all: $(BINS) .gitignore
 
 clean:
 	rm -f *.o $(BINS)
+
+.gitignore: Makefile
+	echo $(BINS) | tr ' ' '\n' >.gitignore
