@@ -3,11 +3,11 @@ BINS = $(SRCS:.c=)
 
 CC = cc
 
-CFLAGS = -Iliburing/src/include
+CFLAGS  = -Iliburing/src/include
 LDFLAGS = -Lliburing/src
 LIBS    = -luring
 
-%: %.c
+%: %.c .gitignore
 	$(CC) $(CFLAGS) $(LDFLAGS) $< $(LIBS) -o $@
 
 all: $(BINS) .gitignore
