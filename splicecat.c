@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* Need one for each file, and then one for the pipe and splice */
-	int depth = argc - 1 + 2;
+	int depth = 1024;
 	/* Initialize io_uring */
 	io_uring_queue_init(depth, &ring, 0);
 	int p[2];
@@ -30,6 +30,7 @@ int main(int argc, char *argv[])
 		perror("pipe");
 	}
 
+	struct io_uring_sqe *sqe;
 	for (int i = 1; i < argc; i++) {
 		fprintf(stderr, "creating splice for %s\n", argv[i]);
 		int fd = open(argv[i], O_RDONLY);
@@ -37,23 +38,32 @@ int main(int argc, char *argv[])
 			perror("open");
 			exit(EXIT_FAILURE);
 		}
-		struct io_uring_sqe *sqe = io_uring_get_sqe(&ring);
-		io_uring_prep_splice(sqe, fd, -1, p[1], -1, UINT_MAX, 0);
+
 		char *s;
-		// leaking memory all over the place.
 		asprintf(&s, "splice %s -> pipe", argv[i]);
+
+		sqe = io_uring_get_sqe(&ring);
+		io_uring_prep_splice(sqe, fd, -1, p[1], -1, 131072, 0);
+		// leaking memory all over the place.
 		io_uring_sqe_set_data(sqe, s);
 		sqe->flags |= IOSQE_IO_LINK;
 		io_uring_submit(&ring);
 		/* Don't worry about closing the fd. It's like, nbd y'all. */
 	}
+	/* When we're done close the write side of the pipe. */
+	sqe = io_uring_get_sqe(&ring);
+	io_uring_prep_close(sqe, p[1]);
+	io_uring_sqe_set_data(sqe, "close write side of pipe");
+	sqe->flags |= IOSQE_IO_LINK;
+	io_uring_submit(&ring);
+
 	/* And now a final splice to write from the pipe to stdout. */
-	struct io_uring_sqe *sqe = io_uring_get_sqe(&ring);
-	io_uring_prep_splice(sqe, p[0], -1, STDOUT_FILENO, -1, UINT_MAX, 0);
+	sqe = io_uring_get_sqe(&ring);
+	io_uring_prep_splice(sqe, p[0], -1, STDOUT_FILENO, -1, 131072, 0);
 	io_uring_sqe_set_data(sqe, "pipe -> stdout");
 	io_uring_submit(&ring);
 
-	for (int i = 1; i < argc + 1; i++) {
+	for (;;) {
 		struct io_uring_cqe *cqe;
 		int ret = io_uring_wait_cqe(&ring, &cqe);
 		if (ret < 0) {
