@@ -13,7 +13,7 @@ LIBS    = -luring
 all: $(BINS) .gitignore
 
 clean:
-	rm -f *.o $(BINS)
+	rm -f $(BINS)
 
 .gitignore: Makefile
 	echo $(BINS) | tr ' ' '\n' >.gitignore
