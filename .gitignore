@@ -1,2 +1,8 @@
+copyfile_to_memfd
 splicecat
+piperead
+pipereadclosed
+faillink
+faillinksplicecat
 probe
+bigread

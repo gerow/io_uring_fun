@@ -15,5 +15,5 @@ all: $(BINS) .gitignore
 clean:
 	rm -f $(BINS)
 
-.gitignore: Makefile
+.gitignore: Makefile $(SRCS)
 	echo $(BINS) | tr ' ' '\n' >.gitignore
